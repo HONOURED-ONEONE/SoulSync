@@ -173,3 +173,48 @@ def fallback_signals(mood_label: str | None = None) -> dict:
         "safety_flag": False,
         "safety_reason": ""
     }
+
+
+def get_nims_safe_journal_signals(user_id: int, db) -> dict:
+    """
+    Returns only aggregate journal-derived signals for NIMS.
+
+    Privacy boundary:
+    - Do not return raw journal text.
+    - Do not return exact journal entries.
+    - Do not return quotes.
+    - Do not return private names or sensitive details.
+    """
+
+    # MVP default. Later this can call existing journal signal extraction logic.
+    signals = {
+        "energy": "unknown",
+        "stress": "unknown",
+        "focus_need": "unknown",
+        "source": "safe_aggregate_only",
+    }
+
+    try:
+        # If the project already has a signal extractor, integrate it here.
+        if "extract_journal_signals" in globals():
+            extracted = extract_journal_signals(user_id=user_id, db=db)
+
+            if isinstance(extracted, dict):
+                signals["energy"] = extracted.get("energy", "unknown")
+                signals["stress"] = extracted.get("stress", "unknown")
+                signals["focus_need"] = extracted.get("focus_need", "unknown")
+
+        elif "get_latest_journal_signals" in globals():
+            extracted = get_latest_journal_signals(user_id=user_id, db=db)
+
+            if isinstance(extracted, dict):
+                signals["energy"] = extracted.get("energy", "unknown")
+                signals["stress"] = extracted.get("stress", "unknown")
+                signals["focus_need"] = extracted.get("focus_need", "unknown")
+
+    except Exception:
+        # Never fail Your Voice just because journal signals are unavailable.
+        pass
+
+    return signals
+

@@ -23,20 +23,46 @@ from soulsync.services.nims.turn_policy import (
 )
 from soulsync.services.nims.errors import NoApprovedModelError
 
+try:
+    from soulsync.services.voice_intent import get_voice_intent_features
+except Exception:
+    get_voice_intent_features = None
+
+try:
+    from soulsync.services.journal_signals import get_nims_safe_journal_signals
+except Exception:
+    get_nims_safe_journal_signals = None
+
+try:
+    from soulsync.services.missions import get_nims_time_context
+except Exception:
+    get_nims_time_context = None
+
+try:
+    from soulsync.services.moderation import check_nims_runtime_safety
+except Exception:
+    check_nims_runtime_safety = None
+
 
 def _build_control_vector(
     user_text: str,
     voice_mode: str,
     context: str | None = None,
+    voice_features: dict | None = None,
+    journal_signals: dict | None = None,
+    time_context: dict | None = None,
 ) -> dict:
     """
     Deterministically derives interaction control vector.
 
-    Later this can consume safe journal signals, time context,
-    and voice intent features.
+    Inputs are aggregate signals only.
+    No raw journal content should enter this function.
     """
 
     lower = (user_text or "").lower()
+    voice_features = voice_features or {}
+    journal_signals = journal_signals or {}
+    time_context = time_context or {}
 
     control = {
         "literalness": "high",
@@ -51,10 +77,34 @@ def _build_control_vector(
         control["topic_adherence"] = "high"
         control["response_length"] = "short"
 
+    if voice_features.get("has_confusion"):
+        control["repair_mode"] = "clarify_first"
+        control["turn_latency_ms"] = 900
+
+    if voice_features.get("has_planning_intent"):
+        control["topic_adherence"] = "high"
+
+    if voice_features.get("has_emotional_intensity"):
+        control["response_length"] = "short"
+        control["cognitive_load"] = "low"
+
+    if journal_signals.get("stress") == "high":
+        control["response_length"] = "short"
+        control["cognitive_load"] = "low"
+
+    if journal_signals.get("energy") == "low":
+        control["turn_latency_ms"] = max(control["turn_latency_ms"], 900)
+        control["response_length"] = "short"
+
+    if time_context.get("after_day_end"):
+        control["response_length"] = "short"
+        control["cognitive_load"] = "low"
+        control["turn_latency_ms"] = max(control["turn_latency_ms"], 900)
+
     if any(marker in lower for marker in ["too much", "overwhelmed", "confusing", "lost"]):
         control["cognitive_load"] = "low"
         control["response_length"] = "short"
-        control["turn_latency_ms"] = 900
+        control["turn_latency_ms"] = max(control["turn_latency_ms"], 900)
 
     return control
 
@@ -89,10 +139,35 @@ def run_nims_guarded_turn(
 
         active_model = None
 
+    voice_features = {}
+    journal_signals = {}
+    time_context = {}
+
+    if get_voice_intent_features is not None:
+        try:
+            voice_features = get_voice_intent_features(user_text)
+        except Exception:
+            voice_features = {}
+
+    if get_nims_safe_journal_signals is not None:
+        try:
+            journal_signals = get_nims_safe_journal_signals(user_id=user_id, db=db)
+        except Exception:
+            journal_signals = {}
+
+    if get_nims_time_context is not None:
+        try:
+            time_context = get_nims_time_context()
+        except Exception:
+            time_context = {}
+
     control_vector = _build_control_vector(
         user_text=user_text,
         voice_mode=voice_mode,
         context=context,
+        voice_features=voice_features,
+        journal_signals=journal_signals,
+        time_context=time_context,
     )
 
     if topic_ledger is None:
@@ -134,10 +209,28 @@ def run_nims_guarded_turn(
 
     final_text = arbitration["final_text"]
 
+    moderation_result = {"safe": True, "flags": []}
+
+    if check_nims_runtime_safety is not None:
+        try:
+            moderation_result = check_nims_runtime_safety(final_text)
+        except Exception:
+            moderation_result = {"safe": True, "flags": ["moderation_check_error"]}
+
+    if not moderation_result.get("safe", True):
+        final_text = (
+            "I want to keep this safe and clear. "
+            "Let's focus on one simple next step."
+        )
+
     guardrail = {
         "approved_model_required": NIMS_REQUIRE_APPROVED_MODEL,
         "active_model_id": active_model.id if active_model is not None else None,
         "runtime_status": "allowed",
+        "voice_features": voice_features,
+        "journal_signal_source": journal_signals.get("source"),
+        "time_context_source": time_context.get("source"),
+        "moderation": moderation_result,
     }
 
     metadata = {

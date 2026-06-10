@@ -113,3 +113,54 @@ def fallback_intent() -> dict:
         "priority": "other",
         "constraints": []
     }
+
+
+def get_voice_intent_features(user_text: str) -> dict:
+    """
+    Returns simple, non-private, deterministic features for NIMS.
+
+    This helper does not approve models.
+    This helper does not generate responses.
+    This helper does not expose journal content.
+    """
+
+    text = (user_text or "").lower()
+
+    confusion_markers = [
+        "i don't get it",
+        "i dont get it",
+        "confused",
+        "confusing",
+        "what?",
+        "i'm lost",
+        "im lost",
+        "too much",
+    ]
+
+    planning_markers = [
+        "plan",
+        "schedule",
+        "task",
+        "homework",
+        "assignment",
+        "deadline",
+        "study",
+    ]
+
+    emotional_intensity_markers = [
+        "overwhelmed",
+        "angry",
+        "sad",
+        "stressed",
+        "anxious",
+        "panic",
+        "tired",
+    ]
+
+    return {
+        "has_confusion": any(marker in text for marker in confusion_markers),
+        "has_planning_intent": any(marker in text for marker in planning_markers),
+        "has_emotional_intensity": any(marker in text for marker in emotional_intensity_markers),
+        "token_count": len(text.split()),
+    }
+
