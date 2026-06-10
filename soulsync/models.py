@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, ForeignKey, Text, Date
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, ForeignKey, Text, Date, Float
 from sqlalchemy.sql import func
 from .db import Base
 
@@ -116,3 +116,72 @@ class UserStoryUnlock(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     story_event_id = Column(Integer, ForeignKey("story_events.id"))
     unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ModelApproval(Base):
+    __tablename__ = "model_approvals"
+
+    id = Column(Integer, primary_key=True)
+
+    provider = Column(String, nullable=False)
+    model_id = Column(String, nullable=False)
+    modality = Column(String, nullable=False, default="text")
+    # text | voice | multimodal
+
+    status = Column(String, nullable=False, default="candidate")
+    # candidate | evaluating | approved | rejected | rolled_back
+
+    active = Column(Boolean, default=False)
+
+    eval_score = Column(Float, nullable=True)
+    eval_summary_json = Column(JSON, default={})
+    capability_json = Column(JSON, default={})
+    failure_json = Column(JSON, default={})
+
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class NIMSEvaluationRun(Base):
+    __tablename__ = "nims_evaluation_runs"
+
+    id = Column(Integer, primary_key=True)
+
+    approval_id = Column(Integer, ForeignKey("model_approvals.id"), nullable=False)
+
+    status = Column(String, nullable=False, default="running")
+    # running | passed | failed | error
+
+    total_cases = Column(Integer, default=0)
+    passed_cases = Column(Integer, default=0)
+    failed_cases = Column(Integer, default=0)
+
+    score_json = Column(JSON, default={})
+    case_results_json = Column(JSON, default={})
+    audit_json = Column(JSON, default={})
+
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class NIMSRuntimeLog(Base):
+    __tablename__ = "nims_runtime_logs"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approval_id = Column(Integer, ForeignKey("model_approvals.id"), nullable=True)
+
+    user_text = Column(Text, nullable=True)
+    raw_model_response = Column(Text, nullable=True)
+    final_response = Column(Text, nullable=True)
+
+    control_vector_json = Column(JSON, default={})
+    arbitration_json = Column(JSON, default={})
+    topic_ledger_json = Column(JSON, default={})
+    guardrail_json = Column(JSON, default={})
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
