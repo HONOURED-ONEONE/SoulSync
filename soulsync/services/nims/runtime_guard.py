@@ -231,6 +231,10 @@ def run_nims_guarded_turn(
         "journal_signal_source": journal_signals.get("source"),
         "time_context_source": time_context.get("source"),
         "moderation": moderation_result,
+        "topic_similarity": topic_ledger.get("last_similarity"),
+        "topic_switch_threshold": topic_ledger.get("switch_threshold"),
+        "topic_switch_allowed": topic_ledger.get("last_switch_allowed"),
+        "topic_governance": topic_ledger.get("governance"),
     }
 
     metadata = {

@@ -62,3 +62,45 @@ NIMS_MAX_LITERALNESS_FAILURES=1
 For local development, set `NIMS_REQUIRE_APPROVED_MODEL=false` if you want
 `Your Voice` to fall back safely when no approved model exists.
 
+### NIMS Evaluation Dashboard
+
+SoulSync includes a dedicated Streamlit page for NIMS governance:
+
+```text
+pages/7_NIMS_Evaluation.py
+```
+
+The dashboard supports:
+
+* candidate model registration
+* deterministic evaluation execution
+* approval and activation workflows
+* rollback/deactivation
+* evaluation history inspection
+* runtime governance log inspection
+* topic-ledger similarity simulation
+
+The dashboard is intended for research/admin use and should not be exposed
+as a regular student-facing feature in production.
+
+### Deterministic Topic Ledger
+
+NIMS uses a deterministic local hashed embedding ledger for topic governance.
+
+The ledger computes cosine similarity between the current topic vector and
+the new user turn vector. Topic switching is allowed only if similarity meets
+the configured hard threshold for the current adherence level.
+
+```env
+NIMS_TOPIC_EMBEDDING_DIM=256
+NIMS_TOPIC_HIGH_ADHERENCE_THRESHOLD=0.62
+NIMS_TOPIC_MEDIUM_ADHERENCE_THRESHOLD=0.45
+NIMS_TOPIC_LOW_ADHERENCE_THRESHOLD=0.25
+NIMS_TOPIC_MAX_LEDGER_TERMS=32
+```
+
+This design prevents the LLM from independently deciding whether topic drift
+is acceptable. The LLM may generate semantic content, but topic-switch
+permission remains deterministic and auditable.
+
+
