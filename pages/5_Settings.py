@@ -5,6 +5,23 @@ from soulsync.models import Profile
 from soulsync.services.story_service import get_unlocked_stories
 from soulsync.ui.theme import load_css
 
+try:
+    from soulsync.services.nims.registry import (
+        register_candidate_model,
+        activate_approved_model,
+        rollback_active_model,
+    )
+    from soulsync.services.nims.eval_harness import run_model_evaluation
+    from soulsync.services.nims.registry import get_active_approved_model
+    from soulsync.models import ModelApproval
+except Exception:
+    register_candidate_model = None
+    activate_approved_model = None
+    rollback_active_model = None
+    run_model_evaluation = None
+    get_active_approved_model = None
+    ModelApproval = None
+
 load_css()
 st.title("Settings ⚙️")
 
@@ -57,6 +74,14 @@ if stories:
             st.markdown(story.content_md)
 else:
     st.write("No stories unlocked yet. Keep completing missions!")
+
+st.divider()
+st.header("NIMS Model Governance")
+st.caption(
+    "NIMS model registration, evaluation, activation, rollback, and runtime "
+    "log inspection are now available in the dedicated NIMS Evaluation page."
+)
+st.info("Open the NIMS Evaluation page from the Streamlit sidebar.")
 
 st.divider()
 

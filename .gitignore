@@ -4,3 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# NIMS local evaluation/debug artifacts
+nims_eval_outputs/
+nims_runtime_debug/
+*.nims.json

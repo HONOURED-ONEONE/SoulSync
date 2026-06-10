@@ -1168,3 +1168,63 @@ def apply_swaps(user_id: int, date_str: str, swap_json: dict, db: Session, sourc
         pass
 
     return plan_run
+
+
+def get_nims_time_context(profile=None, now=None) -> dict:
+    """
+    Returns time context for NIMS response shaping.
+
+    This helper does not modify plans or missions.
+    It only exposes safe timing metadata.
+    """
+
+    default_context = {
+        "after_day_end": False,
+        "recommended_response_length": "short",
+        "recommended_cognitive_load": "low",
+        "source": "nims_default_time_context",
+    }
+
+    try:
+        if "compute_time_context" in globals():
+            computed = compute_time_context(profile=profile, now=now)
+
+            if isinstance(computed, dict):
+                return {
+                    "after_day_end": bool(computed.get("after_day_end", False)),
+                    "recommended_response_length": computed.get(
+                        "recommended_response_length",
+                        "short",
+                    ),
+                    "recommended_cognitive_load": computed.get(
+                        "recommended_cognitive_load",
+                        "low",
+                    ),
+                    "source": "missions.compute_time_context",
+                }
+
+    except TypeError:
+        try:
+            computed = compute_time_context(profile, now)
+
+            if isinstance(computed, dict):
+                return {
+                    "after_day_end": bool(computed.get("after_day_end", False)),
+                    "recommended_response_length": computed.get(
+                        "recommended_response_length",
+                        "short",
+                    ),
+                    "recommended_cognitive_load": computed.get(
+                        "recommended_cognitive_load",
+                        "low",
+                    ),
+                    "source": "missions.compute_time_context",
+                }
+        except Exception:
+            pass
+
+    except Exception:
+        pass
+
+    return default_context
+

@@ -6,6 +6,24 @@ from soulsync.services.moderation import check_safety
 from soulsync.models import VoiceMessage, JournalEntry
 from soulsync.ui.theme import load_css
 
+try:
+    from soulsync.config import NIMS_ENABLED, NIMS_DEBUG_PANEL
+except Exception:
+    NIMS_ENABLED = False
+    NIMS_DEBUG_PANEL = False
+
+try:
+    from soulsync.services.nims.runtime_guard import run_nims_guarded_turn
+    from soulsync.services.nims.errors import NoApprovedModelError, RuntimeGuardRejected
+except Exception:
+    run_nims_guarded_turn = None
+
+    class NoApprovedModelError(Exception):
+        pass
+
+    class RuntimeGuardRejected(Exception):
+        pass
+
 # 3F-3: voice intent extractor (Step 3B)
 try:
     from soulsync.services.voice_intent import extract_voice_intent_summary
@@ -45,6 +63,11 @@ with col2:
         else 0,
         key="voice_mode_select",
     )
+
+if NIMS_DEBUG_PANEL:
+    if st.button("Reset NIMS topic ledger"):
+        st.session_state.pop("nims_topic_ledger", None)
+        st.success("NIMS topic ledger reset.")
 
 db = SessionLocal()
 try:
@@ -281,13 +304,60 @@ try:
             context = f"User mode: {st.session_state.voice_mode}. User is a student."
 
             # Get AI response
-            response, has_private_used = get_ai_response(
-                user_id,
-                user_input,
-                context,
-                db,
-                mode=st.session_state.voice_mode,
-            )
+            if NIMS_ENABLED and run_nims_guarded_turn is not None:
+                try:
+                    nims_topic_ledger = st.session_state.get("nims_topic_ledger")
+
+                    nims_result = run_nims_guarded_turn(
+                        db=db,
+                        user_id=user_id,
+                        user_text=user_input,
+                        voice_mode=st.session_state.voice_mode,
+                        context=context,
+                        topic_ledger=nims_topic_ledger,
+                    )
+
+                    response = nims_result["final_text"]
+                    st.session_state["nims_topic_ledger"] = nims_result.get("topic_ledger", {})
+
+                    if NIMS_DEBUG_PANEL:
+                        with st.expander("NIMS diagnostics", expanded=False):
+                            st.json(
+                                {
+                                    "control_vector": nims_result.get("control_vector"),
+                                    "topic_ledger": nims_result.get("topic_ledger"),
+                                    "arbitration": nims_result.get("arbitration"),
+                                    "turn_policy": nims_result.get("turn_policy"),
+                                    "guardrail": nims_result.get("guardrail"),
+                                }
+                            )
+
+                except NoApprovedModelError:
+                    response = (
+                        "Your Voice is currently in safe fallback mode because no approved "
+                        "conversation model is active."
+                    )
+
+                except RuntimeGuardRejected:
+                    response = (
+                        "I want to keep this safe and clear. "
+                        "Could you rephrase that in one sentence?"
+                    )
+
+                except Exception:
+                    response = (
+                        "I had trouble generating a governed response. "
+                        "Let's keep it simple: what is one thing you want help with?"
+                    )
+
+            else:
+                response, has_private_used = get_ai_response(
+                    user_id=user_id,
+                    user_text=user_input,
+                    context=context,
+                    db=db,
+                    mode=st.session_state.voice_mode,
+                )
 
             # If your get_ai_response already stores assistant messages in DB, this may duplicate.
             # To avoid duplication, only store if response exists AND last assistant message isn't identical.
