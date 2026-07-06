@@ -1,7 +1,7 @@
 import streamlit as st
 
 try:
-    from soulsync.database import SessionLocal
+    from soulsync.db import SessionLocal
 except Exception:
     SessionLocal = None
 
