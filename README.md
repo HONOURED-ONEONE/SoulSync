@@ -13,13 +13,22 @@ This is a Streamlit-based Student Life RPG.
 *   **Database**: Defaults to `sqlite:///soulsync.db`. Set `DATABASE_URL` for Postgres.
 *   **AI**: Set `GOOGLE_API_KEY` for Gemini integration. Defaults to fallback mode if missing.
 
-## Features
+## Active MVP Flow
 
-*   **Dashboard**: View RPG stats.
-*   **Missions**: Daily tasks based on journal inputs.
-*   **Journal**: Daily check-in.
-*   **Your Voice**: Supportive chat (Gemini or Fallback).
+Journal/quick capture → proposal review → explicit approval → Dashboard agenda → alert → completion → XP
 
+*   **Dashboard**: View RPG stats, agenda, alerts, completion tracking.
+*   **Journal**: Daily check-in, quick capture, and proposal drafting.
+*   **Your Voice**: Supportive chat with modes such as Cheer me on, Help me plan, Reflect with me, and Study buddy.
+
+## Future Scope (not active MVP)
+
+These features remain dormant backend/services but are not active in the current MVP:
+
+*   **AI Planner**
+*   **Adapt My Day**
+*   **swaps**
+*   **Party planning**
 
 ## NIMS: Neurodivergent Interaction Modelling System
 
@@ -102,5 +111,3 @@ NIMS_TOPIC_MAX_LEDGER_TERMS=32
 This design prevents the LLM from independently deciding whether topic drift
 is acceptable. The LLM may generate semantic content, but topic-switch
 permission remains deterministic and auditable.
-
-
