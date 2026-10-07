@@ -1,0 +1,49 @@
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif;
+}
+
+.ss-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    border: 1px solid #F1F5FF;
+}
+
+.ss-chip {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 15px;
+    background-color: #E3F2FD;
+    color: #1565C0;
+    font-size: 0.8em;
+    margin-right: 5px;
+}
+
+.ss-bubble-user {
+    background-color: #22B8CF;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 15px 15px 0 15px;
+    margin: 10px 0;
+    max-width: 80%;
+    align-self: flex-end;
+    float: right;
+    clear: both;
+}
+
+.ss-bubble-assistant {
+    background-color: #F1F5FF;
+    color: #1F2937;
+    padding: 10px 15px;
+    border-radius: 15px 15px 15px 0;
+    margin: 10px 0;
+    max-width: 80%;
+    align-self: flex-start;
+    float: left;
+    clear: both;
+}
