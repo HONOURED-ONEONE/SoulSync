@@ -40,5 +40,5 @@ if "user" not in st.session_state:
 
 else:
     st.markdown(f"### Welcome back, {st.session_state.user['handle']}! 👋")
-    st.write("Navigate using the sidebar to check your Missions, Journal, or chat with Your Voice.")
+    st.write("Navigate using the sidebar to check your Dashboard, Journal, or chat with Your Voice.")
     st.info("👈 Open the sidebar to get started!")
