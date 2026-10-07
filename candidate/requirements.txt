@@ -2,4 +2,4 @@ streamlit
 sqlalchemy
 requests
 watchdog
-psycopg2-binary
+psycopg3-binary
